@@ -6,19 +6,21 @@ using System.Threading.Tasks;
 
 namespace aoede.Audio
 {
-    enum TAGTYPE { LABEL, NUMERIC };
+    enum TAGTYPE { LABEL, NUMERIC, GENERIC };
 
     class Tag
     {
         string label;
         TAGTYPE type;
         double num;
+        Object data;
 
         public Tag(string str)
         {
             label = str;
             num = -1;
             type = TAGTYPE.LABEL;
+            data = str;
         }
 
         public Tag(string str, double value)
@@ -26,11 +28,18 @@ namespace aoede.Audio
             label = str;
             num = value;
             type = TAGTYPE.NUMERIC;
+            data = value;
+        }
+
+        public Tag(string str, Object obj)
+        {
+            label = str;
+            data = obj;
         }
 
         public string getString()
         {
-            return label;
+            return (string)data;
         }
 
         public double getNumeric()

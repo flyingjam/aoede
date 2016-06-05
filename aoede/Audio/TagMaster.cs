@@ -15,19 +15,25 @@ namespace aoede.Audio
             
         }
 
-        public void add(Music music, string str)
+        public void add(Music music, Tag tag)
         {
-            if (tagMap.ContainsKey(music.filepath))
+             if (tagMap.ContainsKey(music.filepath))
             {
                 var temp = tagMap[music.filepath];
-                temp.Add(new Tag(str));
+                temp.Add(tag);
             }
             else
             {
                 var temp = new List<Tag>();
-                temp.Add(new Tag(str));
+                temp.Add(tag);
                 tagMap.Add(music.filepath, temp);
             }
+
+        }
+
+        public void add(Music music, string str)
+        {
+            add(music, new Tag(str));
         }
 
         public List<Tag> get(Music music)

@@ -58,14 +58,63 @@ namespace aoede
                     var temp = createMusic(item);
                     play.add(temp);
                 }
+
                 globalPlaylistList.Add(play);
                 return play;
+
             }
+
+            public void tag(Music music, Tag tag)
+            {
+                tagMaster.add(music, tag);
+            }
+
+            public void tag(Music music, params Tag[] tags)
+            {
+                foreach(Tag t in tags)
+                {
+                    tag(music, t);
+                }
+            }
+
+            public void tag(Music music, string label)
+            {
+                tag(music, new Tag(label));
+            }
+
+            public void tag(Music music, params string[] labels)
+            {
+                foreach(string label in labels)
+                {
+                    tag(music, label);
+                }
+            }
+
+            public void tag(Music music, string label, double num)
+            {
+                tagMaster.add(music, new Tag(label, num));
+            }
+
+            public void tag(Playlist play, string label)
+            {
+                foreach(Music m in play.music)
+                {
+                    tag(m, label);
+                }
+            }
+
+            public void tag(Playlist play, string label, double num)
+            {
+                foreach(Music m in play.music)
+                {
+                    tag(m, label, num);
+                }
+            }
+
 
             public Playlist query(Playlist play, params Tag[] tags)
             {
                 var temp = play.music.Where(x => tags.Aggregate(true, (prod, next) => prod && (tagMaster.get(x).Contains(next)))).ToList<Music>();
-
                 return new Playlist(temp);
             }
 
