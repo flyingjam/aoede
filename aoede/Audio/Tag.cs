@@ -29,6 +29,7 @@ namespace aoede.Audio
             num = n;
             type = TAGTYPE.NUMERIC;
         }
+
         public Tag(string l, string v)
         {
             label = l;
@@ -36,6 +37,7 @@ namespace aoede.Audio
             num = 0;
             type = TAGTYPE.PAIR;
         }
+
         public Tag(string l, double n, string v)
         {
             label = l;
@@ -43,9 +45,6 @@ namespace aoede.Audio
             num = 0;
             type = TAGTYPE.COMBINED;
         }
-
-
-
 
         public override bool Equals(object obj)
         {
@@ -55,5 +54,11 @@ namespace aoede.Audio
             var t = (Tag)obj;
             return (label == t.label) && (num == t.num);
         }
+
+		public override int GetHashCode ()
+		{
+			return label.GetHashCode() + value.GetHashCode() + (int)num;
+		}
+
     }
 }

@@ -28,11 +28,29 @@ namespace aoede
 
             var w = new Audio.Walkman();
             var play = w.createPlaylist("s.mp3", "s.flac", "t.mp3", "r.mp3");
+
             w.tagMaster.add(new Audio.Music("s.mp3"), "mp3");
             w.tagMaster.add(new Audio.Music("t.mp3"), "mp3");
             w.tagMaster.add(new Audio.Music("r.mp3"), "mp3");
 
             var mp3 = w.query(play, new Audio.Tag("mp3"));
+
+			Script script = new Script ();
+
+
+			string test = @"
+function test(x)
+	return x * x
+end
+
+return test";
+
+			var t = script.DoString(test);
+			var fun = t.Function;
+			Console.WriteLine (fun.GetType ());
+			var res = fun.Call (2);
+			Console.WriteLine (res.CastToNumber ());
+
 
             //find all musics with tag mp3 in playlist
 

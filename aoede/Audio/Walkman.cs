@@ -118,6 +118,16 @@ namespace aoede
                 return new Playlist(temp);
             }
 
+			public Playlist query(Playlist play, Func<string, double, string, bool> fun){
+
+			}
+
+			public bool query(MoonSharp.Interpreter.Closure func){
+				Func<string, bool> f = (x => func.Call (x).CastToBool ());
+
+				return f ("hi");
+			}
+
             private void playMusic(Music music)
             {
                 if (status == STATUS.PLAY)
