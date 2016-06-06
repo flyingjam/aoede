@@ -10,7 +10,7 @@ namespace aoede
     {
         class Music
         {
-            public string filepath { get; }
+            public string filepath { get; private set; }
             public Music(string file = "")
             {
                 filepath = file;

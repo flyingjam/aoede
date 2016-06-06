@@ -12,7 +12,7 @@ namespace aoede.Audio
     {
 
         //TODO: change
-        public List<Music> music { get; }
+        public List<Music> music { get; private set; }
         List<int> history;
         Random rand;
 

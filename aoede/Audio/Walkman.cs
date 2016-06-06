@@ -22,7 +22,7 @@ namespace aoede
             //note: change
             public TagMaster tagMaster
             {
-                get;
+                get; private set;
             }
 
             Playlist playlist;

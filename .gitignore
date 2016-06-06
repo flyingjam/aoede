@@ -6,8 +6,6 @@
 *.user
 *.userosscache
 *.sln.docstates
-*.config
-aoede/Properties/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

@@ -6,51 +6,46 @@ using System.Threading.Tasks;
 
 namespace aoede.Audio
 {
-    enum TAGTYPE { LABEL, NUMERIC, GENERIC };
+    enum TAGTYPE { LABEL, NUMERIC, GENERIC, PAIR, COMBINED };
 
     class Tag
     {
-        string label;
-        TAGTYPE type;
-        double num;
-        Object data;
+        public string label { get; private set; }
+        public string value { get; private set; }
+        public TAGTYPE type { get; private set; }
+        public double num { get; private set; }
 
-        public Tag(string str)
+        public Tag(string l)
         {
-            label = str;
-            num = -1;
+            label = l;
+            value = "";
+            num = 0;
             type = TAGTYPE.LABEL;
-            data = str;
         }
-
-        public Tag(string str, double value)
+        public Tag(string l, double n)
         {
-            label = str;
-            num = value;
+            label = l;
+            value = "";
+            num = n;
             type = TAGTYPE.NUMERIC;
-            data = value;
+        }
+        public Tag(string l, string v)
+        {
+            label = l;
+            value = v;
+            num = 0;
+            type = TAGTYPE.PAIR;
+        }
+        public Tag(string l, double n, string v)
+        {
+            label = l;
+            value = v;
+            num = 0;
+            type = TAGTYPE.COMBINED;
         }
 
-        public Tag(string str, Object obj)
-        {
-            label = str;
-            data = obj;
-        }
 
-        public string getString()
-        {
-            return (string)data;
-        }
 
-        public double getNumeric()
-        {
-            return num;
-        }
-
-        public TAGTYPE getType()
-        {
-            return type;
-        }
 
         public override bool Equals(object obj)
         {
@@ -58,7 +53,7 @@ namespace aoede.Audio
                 return false;
 
             var t = (Tag)obj;
-            return (label == t.getString()) && (num == t.getNumeric());
+            return (label == t.label) && (num == t.num);
         }
     }
 }
