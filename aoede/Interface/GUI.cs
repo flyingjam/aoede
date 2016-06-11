@@ -20,6 +20,8 @@ namespace aoede
 
             Menu menu;
 
+            PlaylistViewContainer music;
+
             public GUI() : base("yo")
             {
                 //GLib.Timeout.Add(5, GlobalKeyChecker);
@@ -29,15 +31,19 @@ namespace aoede
                 player = new Audio.Walkman();
                 consoleHide = false; 
                 console = new AConsole(player);
-                menu = new Menu();
+                menu = new Menu(player);
 
+                var p = player.createPlaylist("s.flac", "s.mp3", "reaper.flac", "t.mp3");
+                player.setPlaylist(p);
+                
                 label = new Label("shit");
                 box = new VBox();
+                music = new PlaylistViewContainer(p, player);
+
                 box.Add(menu);
+                box.Add(music);
                 box.Add(console);
 
-                var p = player.createPlaylist("s.flac", "s.mp3", "s.flac");
-                player.setPlaylist(p);
                 Add(box); 
             }
 

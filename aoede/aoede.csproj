@@ -91,6 +91,10 @@
     <Compile Include="Interface\GUI.cs" />
     <Compile Include="Audio\Music.cs" />
     <Compile Include="Interface\Menu.cs" />
+    <Compile Include="Interface\MultiDragTreeView.cs" />
+    <Compile Include="Interface\PlaylistView.cs" />
+    <Compile Include="Interface\PlaylistViewContainer.cs" />
+    <Compile Include="Interface\PlaylistViewTab.cs" />
     <Compile Include="Misc.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

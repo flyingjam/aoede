@@ -11,9 +11,11 @@ namespace aoede.Interface
     {
         MenuToolbar toolbar;
         Label temp;
-        public Menu()
+        Audio.Walkman player;
+        public Menu(Audio.Walkman p)
         {
-            toolbar = new MenuToolbar();
+            player = p;
+            toolbar = new MenuToolbar(p);
             temp = new Label("WHER THE LINE THING IS");
             Add(toolbar);
             Add(temp);
@@ -23,22 +25,67 @@ namespace aoede.Interface
     class MenuToolbar : Toolbar
     {
         ToolButton start, pause, stop, next, previous;
+        Audio.Walkman player;
 
-        public MenuToolbar()
+        public MenuToolbar(Audio.Walkman p)
         {
+
+            player = p;
+
             this.ToolbarStyle = Gtk.ToolbarStyle.Icons;
 
             start = new ToolButton(Stock.MediaPlay);
             stop = new ToolButton(Stock.MediaStop);
             pause = new ToolButton(Stock.MediaPause);
-            next = new ToolButton(Stock.MediaNext);
             previous = new ToolButton(Stock.MediaPrevious);
+            next = new ToolButton(Stock.MediaNext);
+
             this.Insert(start, 0);
             this.Insert(stop, 1);
             this.Insert(pause, 2);
-            this.Insert(next, 3);
-            this.Insert(previous, 4);
+            this.Insert(previous, 3);
+            this.Insert(next, 4);
+
+
+            connectSignals();
         } 
+
+        private void connectSignals()
+        {
+
+            start.Clicked += StartHandler;
+            stop.Clicked += StopHandler;
+            pause.Clicked += PauseHandler;
+            next.Clicked += NextHandler;
+            previous.Clicked += PreviousHandler;
+            
+        }
+
+        private void StartHandler(object o, EventArgs args)
+        {
+            player.play();            
+        }
+
+        private void StopHandler(object o, EventArgs args)
+        {
+            player.stop();
+        }
+
+        private void PauseHandler(object o, EventArgs args)
+        {
+            player.pause();
+        }
+
+        private void NextHandler(object o, EventArgs args)
+        {
+            player.next();
+        }
+
+        private void PreviousHandler(object o, EventArgs args)
+        {
+            player.previous();
+        }
+
     }
 
 }

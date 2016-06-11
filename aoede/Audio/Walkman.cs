@@ -20,10 +20,7 @@ namespace aoede
             FMOD.Sound current;
             FMOD.Channel channel;
             //note: change
-            public TagMaster tagMaster
-            {
-                get; private set;
-            }
+            public TagMaster tagMaster { get; private set; }
 
             Playlist playlist;
 
@@ -47,7 +44,9 @@ namespace aoede
 
             public Music createMusic(string path)
             {
-                return new Music(path);
+                var m = new Music(path);
+                loadMetadata(m);
+                return m;
             }
 
             public Playlist createPlaylist(params string[] fileList)
@@ -62,6 +61,23 @@ namespace aoede
                 globalPlaylistList.Add(play);
                 return play;
 
+            }
+
+            public void loadMetadata(Music music)
+            {
+                TAG t;
+                int numTags, numTagsUpdated;
+                FMOD.Sound sound;
+                system.createStream(music.filepath, FMOD.MODE.OPENONLY, out sound);
+                sound.getNumTags(out numTags, out numTagsUpdated);
+
+                for(int i = 0; i < numTags; i++)
+                {
+                    sound.getTag(null, i, out t);
+                    var data = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(t.data);
+                    tag(music, t.name, data);
+                    //Console.WriteLine("Name: " + t.name + " | Data: " + data);
+                }
             }
 
             public void tag(Music music, Tag tag)
@@ -80,6 +96,11 @@ namespace aoede
             public void tag(Music music, string label)
             {
                 tag(music, new Tag(label));
+            }
+
+            public void tag(Music music, string label, string value)
+            {
+                tagMaster.add(music, new Tag(label, value));
             }
 
             public void tag(Music music, params string[] labels)
@@ -119,7 +140,7 @@ namespace aoede
             }
 
 			public Playlist query(Playlist play, Func<string, double, string, bool> fun){
-
+                return null;
 			}
 
 			public bool query(MoonSharp.Interpreter.Closure func){
@@ -127,6 +148,17 @@ namespace aoede
 
 				return f ("hi");
 			}
+
+            public Tag getTag(Music m, string label)
+            {
+                return tagMaster.get(m, label);
+            }
+
+            public List<Tag> getTag(Music m)
+            {
+                return tagMaster.get(m);
+            }
+
 
             private void playMusic(Music music)
             {
@@ -160,6 +192,22 @@ namespace aoede
             {
                 playlist = p;
             }
+            
+            public void playlistSeek(Music m)
+            {
+                playlist.seek(m);
+            }
+
+            public void playlistSeek(int index)
+            {
+                playlist.seek(index);
+            }
+
+            public void playlistSeek(Guid UUID)
+            {
+                playlist.seek(UUID);
+            }
+
 
             public void stop()
             {

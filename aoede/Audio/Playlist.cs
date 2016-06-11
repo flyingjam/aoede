@@ -13,6 +13,7 @@ namespace aoede.Audio
 
         //TODO: change
         public List<Music> music { get; private set; }
+        public string name { get; set; }
         List<int> history;
         Random rand;
 
@@ -80,6 +81,50 @@ namespace aoede.Audio
         {
             currentIndex = playback.previous(currentIndex, music, history);
             return currentIndex;
+        }
+
+        public void seek(Music m)
+        {
+            var index = music.IndexOf(m);
+            if (index != -1)
+            {
+                history.Add(currentIndex);
+                currentIndex = index;
+            }
+        }
+
+        public void seek(int index)
+        {
+            if(index > 0 && index < music.Count)
+            {
+                history.Add(currentIndex);
+                currentIndex = index;
+            }
+        }
+
+
+        public void seek(string file)
+        {
+            for(int i = 0; i < music.Count; i++)
+            {
+                if(music[i].filepath == file)
+                {
+                    seek(i);
+                    break;
+                }
+            }
+        }
+
+        public void seek(Guid UUID)
+        {
+            for(int i = 0; i < music.Count; i++)
+            {
+                if (music[i].UUID == UUID)
+                {
+                    seek(i);
+                    break;
+                }
+            }
         }
 
         public void add(Music m)

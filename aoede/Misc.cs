@@ -14,5 +14,16 @@ namespace aoede
             else if (val.CompareTo(max) > 0) return max;
             else return val;
         }
+
+        public static bool isUnicodeNull(string str)
+        {
+            foreach(char c in str)
+            {
+                if ((int)c == 0)
+                    return true;
+            }
+
+            return false;
+        }
     }
 }

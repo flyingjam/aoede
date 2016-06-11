@@ -28,7 +28,6 @@ namespace aoede.Audio
                 temp.Add(tag);
                 tagMap.Add(music.filepath, temp);
             }
-
         }
 
         public void add(Music music, string str)
@@ -42,6 +41,21 @@ namespace aoede.Audio
                 return tagMap[music.filepath];
             else
                 return new List<Tag>();
+        }
+
+        public Tag get(Music music, string label)
+        {
+            var tags = get(music);
+            foreach(Tag tag in tags)
+            {
+                if (tag.label == label)
+                {
+                    Console.WriteLine("yo");
+                    return tag;
+                }
+            }
+            Console.WriteLine("Couldn't Find");
+            return new Tag("");
         }
 
     }
