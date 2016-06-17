@@ -29,47 +29,62 @@ namespace aoede
                 KeyPressEvent += OpenConsole;
 
                 player = new Audio.Walkman();
+                player.Volume(0.3);
                 consoleHide = false; 
                 console = new AConsole(player);
                 menu = new Menu(player);
 
-                var p = player.createPlaylist("s.flac", "s.mp3", "reaper.flac", "t.mp3");
-                player.setPlaylist(p);
                 
                 label = new Label("shit");
                 box = new VBox();
-                music = new PlaylistViewContainer(p, player);
+                music = new PlaylistViewContainer(player);
 
-                box.Add(menu);
-                box.Add(music);
-                box.Add(console);
+                //box.Add(menu);
+                //box.Add(music);
+                //box.Add(console);
+                var menutest = new MenuBar();
+                menutest.Add(new Label("test"));
+                menutest.Style = menu.Style;
+                //menutest.HeightRequest = 30;
+                //box.PackStart(menutest, false, false, 0);
+                menu.HeightRequest = 30;
 
+                var hboxtest = new HBox();
+                hboxtest.HeightRequest = 30;
+                box.PackStart(menu, false, false, 0);
+                box.PackStart(music, true, true, 0);
+                box.PackStart(console, false, false, 0);
+                this.SetDefaultSize(1280, 720);
+
+                var p = player.createPlaylist("Play1", "s.flac", "s.mp3", "reaper.flac", "t.mp3");
+                player.createPlaylist("Test", "r.mp3", "reaper.flac");
+                player.setPlaylist(p);
                 Add(box); 
             }
 
             private void ButtonPlay(object obj, EventArgs args)
             {
-                player.play();
+                player.Play();
             }
 
             private void ButtonStop(object obj, EventArgs args)
             {
-                player.stop();
+                player.Stop();
             }
 
             private void ButtonPause(object obj, EventArgs arg)
             {
-                player.pause();
+                player.Pause();
             }
 
             private void ButtonNext(object obj, EventArgs arg)
             {
-                player.next();
+                player.Next();
             }
 
             private void ButtonPrevious(object obj, EventArgs arg)
             {
-                player.previous();
+                player.Previous();
             }
 
 
@@ -82,14 +97,16 @@ namespace aoede
             [GLib.ConnectBefore]
             private void OpenConsole(object obj, KeyPressEventArgs args)
             {
-                if (args.Event.Key == Gdk.Key.Tab)
+                if (args.Event.Key == Gdk.Key.quoteleft)
+                {
                     consoleHide = !consoleHide;
+                    args.RetVal = true;
+                }
 
                 if (consoleHide)
                     console.Hide();
                 else
                     console.Show();
-
             }
 
 

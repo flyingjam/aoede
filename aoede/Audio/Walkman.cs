@@ -12,6 +12,9 @@ namespace aoede
 
         enum STATUS { STOP, PLAY };
 
+        public delegate void MusicChangedEventHandler(object obj, MusicChangedArgs args);
+        delegate void PlaylistAddedHandler(object obj, PlaylistAddedArgs args);
+
         class Walkman
         {
 
@@ -19,6 +22,23 @@ namespace aoede
             FMOD.RESULT result;
             FMOD.Sound current;
             FMOD.Channel channel;
+
+            public event MusicChangedEventHandler MusicChanged;
+
+            protected virtual void OnMusicChanged(MusicChangedArgs args)
+            {
+                if (MusicChanged != null)
+                    MusicChanged(this, args);
+            }
+
+            public event PlaylistAddedHandler PlaylistAdded;
+
+            protected virtual void OnPlaylistAdded(PlaylistAddedArgs args)
+            {
+                if (PlaylistAdded != null)
+                    PlaylistAdded(this, args);
+            }
+
             //note: change
             public TagMaster tagMaster { get; private set; }
 
@@ -26,6 +46,10 @@ namespace aoede
 
             List<Playlist> globalPlaylistList;
             STATUS status;
+
+            public SoundSettings GlobalSettings { get; set; } = new SoundSettings();
+
+            private int nextPlaylistID = 0;
 
             public Walkman()
             {
@@ -39,7 +63,34 @@ namespace aoede
 
                 playlist = new Playlist();
                 status = STATUS.STOP;
+            }
 
+            public TimeSpan GetTime()
+            {
+                if(status == STATUS.PLAY)
+                {
+                    uint position;
+                    channel.getPosition(out position, TIMEUNIT.MS);
+                    return TimeSpan.FromMilliseconds(position);
+                }
+                else
+                {
+                    return TimeSpan.FromMilliseconds(0);
+                }
+            }
+
+            public TimeSpan GetCurrentLength()
+            {
+                if(current != null)
+                {
+                    uint length;
+                    current.getLength(out length, TIMEUNIT.MS);
+                    return TimeSpan.FromMilliseconds(length);
+                }
+                else
+                {
+                    return TimeSpan.FromMilliseconds(0);
+                }
             }
 
             public Music createMusic(string path)
@@ -49,7 +100,13 @@ namespace aoede
                 return m;
             }
 
-            public Playlist createPlaylist(params string[] fileList)
+            private void SetSettings()
+            {
+                if(status == STATUS.PLAY)
+                    GlobalSettings.Set(ref channel);
+            }
+
+            public Playlist createPlaylist(string name, params string[] fileList)
             {
                 var play = new Playlist();
                 foreach(string item in fileList)
@@ -57,10 +114,13 @@ namespace aoede
                     var temp = createMusic(item);
                     play.add(temp);
                 }
+                play.Name = name;
+                play.GlobalID = nextPlaylistID;
+                nextPlaylistID++;
 
                 globalPlaylistList.Add(play);
+                OnPlaylistAdded(new PlaylistAddedArgs(play));
                 return play;
-
             }
 
             public void loadMetadata(Music music)
@@ -68,7 +128,7 @@ namespace aoede
                 TAG t;
                 int numTags, numTagsUpdated;
                 FMOD.Sound sound;
-                system.createStream(music.filepath, FMOD.MODE.OPENONLY, out sound);
+                system.createStream(music.Filepath, FMOD.MODE.OPENONLY, out sound);
                 sound.getNumTags(out numTags, out numTagsUpdated);
 
                 for(int i = 0; i < numTags; i++)
@@ -132,22 +192,79 @@ namespace aoede
                 }
             }
 
+            public Playlist getPlaylist(int ID)
+            {
+                foreach(Playlist play in globalPlaylistList)
+                {
+                    if (play.GlobalID == ID)
+                        return play;
+                }
+                return null;
+            }
 
-            public Playlist query(Playlist play, params Tag[] tags)
+            public PlaylistList playlistSearch(params string[] name)
+            {
+
+                var temp = new PlaylistList();
+
+                foreach(Playlist play in globalPlaylistList)
+                {
+                    if (name.Contains(play.Name))
+                    {
+                        temp.Add(play);
+                    }
+                }
+
+                return temp;
+            }
+
+            public Playlist Query(Playlist play, params Tag[] tags)
             {
                 var temp = play.music.Where(x => tags.Aggregate(true, (prod, next) => prod && (tagMaster.get(x).Contains(next)))).ToList<Music>();
                 return new Playlist(temp);
             }
 
-			public Playlist query(Playlist play, Func<string, double, string, bool> fun){
-                return null;
+            public List<Music> Query(Playlist play, params string[] names)
+            {
+                var temp = new List<Music>();
+
+                foreach(Music m in play.music)
+                {
+                    var tags = getTag(m);
+                    var contains = tags.Aggregate(true, (prod, next) => prod && (names.Contains(next.Label)));
+                    if (contains)
+                        temp.Add(m);
+                }
+                return temp;
+            }
+
+			public List<Music> Query(Playlist play, MoonSharp.Interpreter.Closure func){
+                var temp = new List<Music>();
+                
+                foreach(Music m in play.music)
+                {
+                    var tags = getTag(m);
+                    var filename = m.Filename;
+                    try {
+                        var truth = func.Call(filename, tags).CastToBool();
+                        if (truth)
+                        {
+                            temp.Add(m);
+                        }
+                    } catch(Exception e)
+                    {
+                        //eventually print to internal console
+                    }
+                }
+
+                return temp;
 			}
 
-			public bool query(MoonSharp.Interpreter.Closure func){
-				Func<string, bool> f = (x => func.Call (x).CastToBool ());
 
-				return f ("hi");
-			}
+            public Playlist GetCurrentPlaylist()
+            {
+                return playlist;
+            }
 
             public Tag getTag(Music m, string label)
             {
@@ -163,34 +280,91 @@ namespace aoede
             private void playMusic(Music music)
             {
                 if (status == STATUS.PLAY)
-                    stop();
-
-                result = system.createStream(music.filepath, FMOD.MODE.DEFAULT, out current);
+                    Stop();
+                result = system.createStream(music.Filepath, FMOD.MODE.DEFAULT, out current);
                 CHECKERR(result, ErrorType.Playback);
                 result = system.playSound(current, null, false, out channel);
                 CHECKERR(result, ErrorType.Playback);
                 status = STATUS.PLAY;
+                SetSettings();
+                uint length;
+                current.getLength(out length, TIMEUNIT.MS);
+                OnMusicChanged(new MusicChangedArgs(length, music.Filepath));
+
             }
 
-            public void play()
+            public void Play()
             {
-                Music music = playlist.get();
+                Music music = playlist.Get();
                 if (music != null)
                     playMusic(music);
             }
 
-            public void play(Music music)
+            public void Play(Music music)
             {
                 status = STATUS.PLAY;
                 var p = new Playlist(music);
                 setPlaylist(p);
-                play();
+                Play();
+            }
+
+
+            public void Stop()
+            {
+
+                if (status != STATUS.STOP)
+                {
+                    status = STATUS.STOP;
+                    result = channel.stop();
+                    CHECKERR(result, ErrorType.Playback);
+                    current.release();
+                }
+            }
+
+            public void Pause()
+            {
+                if (status != STATUS.STOP)
+                {
+                    bool previous = false;
+                    result = channel.getPaused(out previous);
+                    CHECKERR(result, ErrorType.Playback);
+                    result = channel.setPaused(!previous);
+                    CHECKERR(result, ErrorType.Playback);
+                }
+            }
+
+            public void Next()
+            {
+                playlist.Next();
+                Play();
+            }
+
+            public void Previous()
+            {
+                playlist.Previous();
+                Play();
             }
 
 
             public void setPlaylist(Playlist p)
             {
                 playlist = p;
+            }
+
+            public void Seek(TimeSpan position)
+            {
+                if(status == STATUS.PLAY && channel != null)
+                {
+                    channel.setPosition((uint)position.TotalMilliseconds, TIMEUNIT.MS);
+                }
+            }
+
+            public void Seek(int position)
+            {
+                if(status == STATUS.PLAY && channel != null)
+                {
+                    channel.setPosition((uint)position, TIMEUNIT.MS);
+                }
             }
             
             public void playlistSeek(Music m)
@@ -208,42 +382,26 @@ namespace aoede
                 playlist.seek(UUID);
             }
 
-
-            public void stop()
+            public bool playlistSeekPID(int PID)
             {
-
-                if (status != STATUS.STOP)
-                {
-                    status = STATUS.STOP;
-                    result = channel.stop();
-                    CHECKERR(result, ErrorType.Playback);
-                    current.release();
-                }
+                return playlist.seekPID(PID);
             }
 
-            public void pause()
+            public void Volume(float value)
             {
-                if (status != STATUS.STOP)
-                {
-                    bool previous = false;
-                    result = channel.getPaused(out previous);
-                    CHECKERR(result, ErrorType.Playback);
-                    result = channel.setPaused(!previous);
-                    CHECKERR(result, ErrorType.Playback);
-                }
+                GlobalSettings.Volume = value;
+                SetSettings();
+                Console.WriteLine(GlobalSettings.Volume);
             }
 
-            public void next()
+            public void Volume(double value)
             {
-                playlist.next();
-                Console.WriteLine(playlist.get().filepath);
-                play();
+                Volume((float)value);
             }
 
-            public void previous()
+            public float GetVolume()
             {
-                playlist.previous();
-                play();
+                return GlobalSettings.Volume;
             }
 
             private static void CHECKERR(RESULT result, ErrorType type, string msg = "")
@@ -263,4 +421,11 @@ namespace aoede
             }
         }
     }
+
+    class WalkmanEvents
+    {
+
+    }
+
+
 }

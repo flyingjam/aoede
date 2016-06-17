@@ -13,31 +13,32 @@ namespace aoede.Interface
         PlaylistView test;
         Label label;
         Audio.Walkman player;
-        public PlaylistViewContainer(Audio.Playlist play, Audio.Walkman p)
+        public PlaylistViewContainer(Audio.Walkman p)
         {
             player = p;
-            var p2 = player.createPlaylist("r.mp3", "t.mp3");
-            test = new PlaylistView(play, player);
-            var test2 = new PlaylistView(p2, player);
+            player.PlaylistAdded += PlaylistAddedHandler;
             label = new Label("test");
-            add(play);
-            add(p2);
             this.SwitchPage += SwitchPageHandler;
-            
         }
 
         public void add(Audio.Playlist play)
         {
-            var view = new PlaylistView(play, player);
-            var tab = new PlaylistViewTab("", view, this);
+            var view = new PlaylistViewWindow(play, player);
+            var tab = new PlaylistViewTab(play.Name, view, this);
             AppendPage(view, tab);
+            ShowAll();
+        }
+
+        public void PlaylistAddedHandler(object obj, Audio.PlaylistAddedArgs args)
+        {
+            Console.WriteLine("woah");
+            add(args.Addition);
         }
 
         private void SwitchPageHandler(object o, SwitchPageArgs args)
         {
-            var playlistView = (PlaylistView)CurrentPageWidget;
-            player.setPlaylist(playlistView.internalPlaylist);
-            Console.WriteLine("SWITCH");
+            var playlistView = (PlaylistViewWindow)CurrentPageWidget;
+            player.setPlaylist(playlistView.playlist);
         }
 
     }

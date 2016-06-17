@@ -17,16 +17,16 @@ namespace aoede.Audio
 
         public void add(Music music, Tag tag)
         {
-             if (tagMap.ContainsKey(music.filepath))
+             if (tagMap.ContainsKey(music.Filepath))
             {
-                var temp = tagMap[music.filepath];
+                var temp = tagMap[music.Filepath];
                 temp.Add(tag);
             }
             else
             {
                 var temp = new List<Tag>();
                 temp.Add(tag);
-                tagMap.Add(music.filepath, temp);
+                tagMap.Add(music.Filepath, temp);
             }
         }
 
@@ -37,8 +37,8 @@ namespace aoede.Audio
 
         public List<Tag> get(Music music)
         {
-            if (tagMap.ContainsKey(music.filepath))
-                return tagMap[music.filepath];
+            if (tagMap.ContainsKey(music.Filepath))
+                return tagMap[music.Filepath];
             else
                 return new List<Tag>();
         }
@@ -48,13 +48,11 @@ namespace aoede.Audio
             var tags = get(music);
             foreach(Tag tag in tags)
             {
-                if (tag.label == label)
+                if (tag.Label.ToLower() == label.ToLower())
                 {
-                    Console.WriteLine("yo");
                     return tag;
                 }
             }
-            Console.WriteLine("Couldn't Find");
             return new Tag("");
         }
 

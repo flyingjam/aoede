@@ -10,40 +10,40 @@ namespace aoede.Audio
 
     class Tag
     {
-        public string label { get; private set; }
-        public string value { get; private set; }
-        public TAGTYPE type { get; private set; }
-        public double num { get; private set; }
+        public string Label { get; private set; }
+        public string Value { get; private set; }
+        public TAGTYPE Type { get; private set; }
+        public double Num { get; private set; }
 
         public Tag(string l)
         {
-            label = l;
-            value = "";
-            num = 0;
-            type = TAGTYPE.LABEL;
+            Label = l;
+            Value = "";
+            Num = 0;
+            Type = TAGTYPE.LABEL;
         }
         public Tag(string l, double n)
         {
-            label = l;
-            value = "";
-            num = n;
-            type = TAGTYPE.NUMERIC;
+            Label = l;
+            Value = "";
+            Num = n;
+            Type = TAGTYPE.NUMERIC;
         }
 
         public Tag(string l, string v)
         {
-            label = l;
-            value = v;
-            num = 0;
-            type = TAGTYPE.PAIR;
+            Label = l;
+            Value = v;
+            Num = 0;
+            Type = TAGTYPE.PAIR;
         }
 
         public Tag(string l, double n, string v)
         {
-            label = l;
-            value = v;
-            num = 0;
-            type = TAGTYPE.COMBINED;
+            Label = l;
+            Value = v;
+            Num = 0;
+            Type = TAGTYPE.COMBINED;
         }
 
         public override bool Equals(object obj)
@@ -52,12 +52,12 @@ namespace aoede.Audio
                 return false;
 
             var t = (Tag)obj;
-            return (label == t.label) && (num == t.num);
+            return (Label == t.Label) && (Num == t.Num);
         }
 
 		public override int GetHashCode ()
 		{
-			return label.GetHashCode() + value.GetHashCode() + (int)num;
+			return Label.GetHashCode() + Value.GetHashCode() + (int)Num;
 		}
 
     }

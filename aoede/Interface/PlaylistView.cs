@@ -10,143 +10,129 @@ using SFML;
 
 namespace aoede.Interface
 {
-    class PlaylistView : TreeView
+    class PlaylistViewWindow : MultiDragScrolled
     {
-        TreeViewColumn fileName;
-        TreeViewColumn UUID;
-        TreeViewColumn artist;
-
-        ListStore musicList;
-        CellRendererText fileNameCell;
-        CellRendererText artistCell;
-        Audio.Walkman player;
-        bool isMouseDown = false;
-        int previousSelectionNumber = 0;
-
-        public Audio.Playlist internalPlaylist { get; }
-
-        int MouseY = 0;
-
-        public PlaylistView(Audio.Playlist play, Audio.Walkman walk) : base()
+        PlaylistView tree;
+        public Audio.Playlist playlist { get; private set; }
+        public PlaylistViewWindow(Audio.Playlist play, Audio.Walkman walk)
         {
-            PlaySelect sele = new PlaySelect();
-            TargetEntry[] entries = new TargetEntry[1];
-            var entry = new TargetEntry("PlaylistView", TargetFlags.Widget, 0);
-            entry.Target = "STRING";
-            entry.Target = "text/plain";
-            entries[0] = entry;
-            //Reorderable = true;
-            this.DragDrop += DragDataHandler;
-            this.DragDataGet += DragDataGetHandler;
-            //this.EnableModelDragSource(ModifierType.Button1Mask, null, DragAction.Move);
+            tree = new PlaylistView(play, walk, this);
+            Add(tree);
+            playlist = tree.internalPlaylist;
+        }
+
+          
+    }
+
+    class PlaylistView : MultiDragTreeView
+    {
+        TargetEntry[] t =
+        {
+            new TargetEntry("text/uri-list", 0, 2)
+        };
+
+        TreeViewColumn fileName = new TreeViewColumn();
+        TreeViewColumn artist = new TreeViewColumn();
+
+        ListStore musicList = new ListStoreMoveable(typeof(string), typeof(string), typeof(Guid), typeof(int));
+        CellRendererText fileNameCell = new CellRendererText();
+        CellRendererText artistCell = new CellRendererText();
+        Audio.Walkman player;
+
+        public Audio.Playlist internalPlaylist { get; private set; }
+        public PlaylistView(Audio.Playlist play, Audio.Walkman walk, Scrollable parent) : base(parent)
+        {
+            
+            //Create target list
+            var combined = this.targets.Concat(t).ToArray();
+            Gtk.Drag.DestSet(this, DestDefaults.All, combined, DragAction.Move | DragAction.Copy);
+            
             internalPlaylist = play;
             player = walk;
 
-            fileName = new TreeViewColumn();
             fileName.Title = "File Name";
             AppendColumn(fileName);
 
-            artist = new TreeViewColumn();
             artist.Title = "Artist";
             AppendColumn(artist);
 
-            musicList = new ListStore(typeof(string), typeof(string), typeof(Guid));
             updateView();
 
-            fileNameCell = new CellRendererText();
-            fileName.PackStart(fileNameCell, true);
+            fileName.PackStart(fileNameCell, false);
 
-            artistCell = new CellRendererText();
-            artist.PackStart(artistCell, true);
+            artist.PackStart(artistCell, false);
 
             fileName.AddAttribute(fileNameCell, "text", 0);
+            fileName.Resizable = true;
             artist.AddAttribute(artistCell, "text", 1);
+            artist.Resizable = true;
+
+            this.ResizeMode = ResizeMode.Immediate;
+            this.HeadersClickable = true;
+
             Model = musicList;
-            //Reorderable = true;
 
-            //this.ButtonReleaseEvent += MouseReleaseHandler;
-            //musicList.RowsReordered += ReorderedHandler;
-
-            var selection = this.Selection;
-            previousSelectionNumber = selection.CountSelectedRows();
-            selection.Mode = SelectionMode.Multiple;
-            //Reorderable = true;
-
-            TreeIter iter;
-            musicList.IterNthChild(out iter, 3);
-            selection.SelectIter(iter);
-
-            this.SelectionClearEvent += delegate
-            {
-                Console.WriteLine("selected?");
-            };
-
-            //this.ButtonPressEvent += MousePressHandler;
-            //this.SelectionNotifyEvent += test; 
-            //this.SelectionReceived += test; 
-            //this.SelectionRequestEvent += test;
-            //this.SelectAll += test;
-            //this.Selection.Changed += test;
-            //Reorderable = true;
+            Selection.Mode = SelectionMode.Multiple;
             RubberBanding = true;
 
+            ConnectSignals();
+        }
 
+        private void ConnectSignals()
+        {
+            DragDrop += DragDataHandler;
+            DragDataGet += DragDataGetHandler;
+            DragDataReceived += DragDataReceivedHandler;
+            RowActivated += ActivatedHandler;
+            DragMotion += PlaylistView_DragMotion;
         }
 
         private void PlaylistView_DragMotion(object o, DragMotionArgs args)
         {
-            MouseY = args.Y;
-            Console.WriteLine("MOVE");
         }
-         
-        private void DE(object obj, DragEndArgs args)
+
+        public override void moveCallback(List<TreeIter> items, TreeModel model, TreeIter target, bool after)
         {
-            Console.WriteLine("END" + MouseY);
-            var source = Gtk.Drag.GetSourceWidget(args.Context);
-            var win = args.Context.DestWindow;
-            if (args.Context.Targets.Count() > 0)
-            {
-            }
-
-            TreeModel model;
-            var selection = this.Selection.GetSelectedRows(out model);
-            TreePath target;
-            TreeIter targetIter;
-
-            this.GetPathAtPos(0, MouseY, out target);
-            Model.GetIter(out targetIter, target);
-            foreach(var item in selection)
-            {
-                TreeIter itemIter;
-                Model.GetIter(out itemIter, item);
-                musicList.MoveAfter(itemIter, targetIter);
-
-            }
-
-            MouseY = 0;
-
+            makePlaylistSameAsView();
         }
 
+        private void makePlaylistSameAsView()
+        {
+            var list = new List<Audio.Music>(internalPlaylist.music.Count);
+            Model.Foreach(new TreeModelForeachFunc(delegate (TreeModel m, TreePath p, TreeIter i)
+            {
+                var PID = (int)m.GetValue(i, 3);
+                list.Add(internalPlaylist.GetAt(PID));
+                return false;
+            }));
+
+            internalPlaylist.music = list;
+
+            foreach(var m in internalPlaylist.music)
+            {
+                Console.WriteLine(m.Filepath);
+            }
+        }
 
         public void updateView()
         {
             foreach (Audio.Music m in internalPlaylist.music)
             {
-                if (!listStoreContains(m.UUID))
+                if (!listStoreContains(m.PlaylistID))
                 {
                     var artist = player.getTag(m, "ARTIST");
-                    musicList.AppendValues(m.filepath, artist.value, m.UUID);
+                    musicList.AppendValues(m.Filename, artist.Value, m.UUID, m.PlaylistID);
                 }
             }
 
         }
 
-        private bool listStoreContains(Guid UUID)
+        private bool listStoreContains(int PID)
         {
             foreach (object[] row in musicList)
             {
-                var uuid = (Guid)row[2];
-                if (uuid == UUID)
+                var pid = (int)row[3];
+                if (PID == pid)
                 {
                     return true;
                 }
@@ -175,25 +161,32 @@ namespace aoede.Interface
 
         public void DragDataHandler(object o, DragDropArgs args)
         {
-
-            Gtk.Drag.GetData((Widget)o, args.Context, args.Context.Targets[0], args.Time);
-            Console.WriteLine("yeah");
+            if (args.Context.Targets[0].Name == "text/uri-list")
+            {
+                Gtk.Drag.GetData((Widget)o, args.Context, args.Context.Targets[0], args.Time);
+            }
         }
 
         public void DragDataReceivedHandler(object o, DragDataReceivedArgs args)
         {
-    
-            var context = args.Context;
-            var thing = args.SelectionData.Text;
-            var data = args.SelectionData.Data;
-            string encoded = System.Text.Encoding.UTF8.GetString(data);
-            var paths = encoded.Split('\r').Select(x => Uri.UnescapeDataString(x.Replace("file:///", "")).Trim()).ToList<string>();
-            add(paths);
+            if (args.Context.Targets[0].Name == "text/uri-list")
+            {
+                var context = args.Context;
+                var thing = args.SelectionData.Text;
+                var data = args.SelectionData.Data;
+                string encoded = System.Text.Encoding.UTF8.GetString(data);
+                var paths = encoded.Split('\r').Select(x => Uri.UnescapeDataString(x.Replace("file:///", "")).Trim()).ToList<string>();
+                foreach(var path in paths)
+                {
+                    Console.WriteLine(path);
+                }
+                add(paths);
+            }
         }
 
         public void DragDataGetHandler(object o, DragDataGetArgs args)
         {
-            Console.WriteLine("get");
+            Console.WriteLine(args.Context.Targets[0].Name);
         }
 
         private void CursorChangedHandler(object o, EventArgs args)
@@ -221,56 +214,15 @@ namespace aoede.Interface
         {
             TreeIter iter;
             musicList.GetIter(out iter, args.Path);
-            var data = (Guid)musicList.GetValue(iter, 2);
-            player.playlistSeek(data);
-            player.play();
+            var data = (int)musicList.GetValue(iter, 3);
+            var name = (string)musicList.GetValue(iter, 0);
+            Console.WriteLine(name);
+            Console.WriteLine(data);
+            if (!player.playlistSeekPID(data))
+                Console.WriteLine("FUCK");
+            player.Play();
         }
 
-        [GLib.ConnectBefore]
-        private void ReorderedHandler(object o, RowsReorderedArgs args)
-        {
-            Console.WriteLine("Reorder");
-        }
-
-        [GLib.ConnectBefore]
-        private void MouseReleaseHandler(object o, ButtonReleaseEventArgs args)
-        {
-            var obj = (TreeView)o;
-            var col = obj.Columns[0];
-
-            Gdk.Rectangle rect = obj.VisibleRect;
-            var newRect = new Gdk.Rectangle();
-            int x_offset, y_offset, width, height;
-            fileNameCell.GetSize(this, ref newRect, out x_offset, out y_offset, out width, out height);
-            var pad = fileNameCell.Ypad;
-            var asdlfa = fileNameCell.Size;
-
-            var y = args.Event.Y;
-            var index = y / (height + 2 * pad);
-            //musicList.Insert((int)index);
-            //Console.WriteLine((int)index);
-        }
-
-        private void getByIndex(int index)
-        {
-            TreeIter iter;
-            //musicList.GetIterFirst(out iter);
-            musicList.IterNthChild(out iter, index);
-        }
-
-
-
-
-
-
-    }
-
-    class PlaySelect : TreeSelection
-    {
-        public PlaySelect()
-        {
-
-        }
 
     }
 }

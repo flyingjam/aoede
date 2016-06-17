@@ -80,6 +80,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Audio\AudioEvents.cs" />
+    <Compile Include="Audio\ListWrappers.cs" />
+    <Compile Include="Audio\SoundSettings.cs" />
     <Compile Include="Audio\Playlist.cs" />
     <Compile Include="Audio\Tag.cs" />
     <Compile Include="Audio\TagMaster.cs" />

@@ -16,9 +16,9 @@ namespace aoede.Interface
         void Next(ref TreeIter iter);
     }
 
-    class ListStoreMovable : ListStore, TreeStoreMovable
+    class ListStoreMoveable : ListStore, TreeStoreMovable
     {
-        public ListStoreMovable(params Type[] type) : base(type)
+        public ListStoreMoveable(params Type[] type) : base(type)
         {
             
         }
@@ -41,18 +41,19 @@ namespace aoede.Interface
 
     class MultiDragTreeView : TreeView
     {
-        TreePath deferSelect = null;
-
-        static TargetEntry[] targets =
+        public TargetEntry[] targets =
         {
             new TargetEntry("text/internal-list", TargetFlags.Widget, 0),
             new TargetEntry("text/internal-list", TargetFlags.OtherWidget, 1)
         };
-        
-        public MultiDragTreeView()
+
+        TreePath deferSelect = null;
+        Scrollable parent; 
+        public MultiDragTreeView(Scrollable p = null)
         {
             SetDest();
             ConnectSignals();
+            parent = p;
         }
         
         private void SetDest()
@@ -77,7 +78,6 @@ namespace aoede.Interface
         {
             if (args.Context.Targets[0].Name == "text/internal-list")
             {
-                Console.WriteLine("RECIEVED");
                 TreeModel model;
 
                 TreePath path;
@@ -89,20 +89,40 @@ namespace aoede.Interface
                     else if (pos == TreeViewDropPosition.IntoOrAfter)
                         pos = TreeViewDropPosition.After;
                 }
+                else
+                {
+                    int xOffset, yOffset, width, height;
+                    this.Columns[0].CellGetSize(this.VisibleRect, out xOffset, out yOffset, out width, out height);
+
+                    if (args.Y <= height)
+                    {
+                        TreeIter iter;
+                        pos = TreeViewDropPosition.Before;
+                        Model.GetIterFirst(out iter);
+                        path = Model.GetPath(iter);
+                    }
+                    else
+                    {
+                        TreeIter iter;
+                        pos = TreeViewDropPosition.After;
+                        Model.IterNthChild(out iter, Model.IterNChildren() - 1);
+                        path = Model.GetPath(iter);
+                    }
+                    //below last row or above first
+                }
                 TreeIter targetIter;
 
                 var selection = Selection.GetSelectedRows(out model);
                 model.GetIter(out targetIter, path);
 
-                List<TreeIter> thing = new List<TreeIter>();
+                List<TreeIter> items = new List<TreeIter>();
                 foreach (var item in selection)
                 {
                     TreeIter i;
                     model.GetIter(out i, item);
-                    thing.Add(i);
+                    items.Add(i);
                 }
-
-                foreach (var item in thing)
+                foreach (var item in items)
                 {
                     var i = item;
                     var m = (TreeStoreMovable)model;
@@ -114,7 +134,13 @@ namespace aoede.Interface
                     else
                         m.Before(item, targetIter);
                 }
+                moveCallback(items, model, targetIter, (pos == TreeViewDropPosition.After));
             }
+        }
+
+        public virtual void moveCallback(List<TreeIter> items, TreeModel model, TreeIter target, bool after)
+        {
+
         }
 
         private void move(bool before)
@@ -151,6 +177,20 @@ namespace aoede.Interface
                     pos = TreeViewDropPosition.After;
                 this.SetDragDestRow(path, pos);
             }
+
+            if (parent != null)
+            {
+                int xOffset, yOffset, width, height;
+                this.Columns[0].CellGetSize(this.VisibleRect, out xOffset, out yOffset, out width, out height);
+
+                if (args.Y < height)
+                    parent.scrollUp();
+                else if (args.Y > this.VisibleRect.Height)
+                    parent.scrollDown();
+                else
+                    parent.scrollStop();
+            }
+
         }
 
         private TreeViewDropPosition belowOrAbove(int x, int y)
@@ -192,18 +232,9 @@ namespace aoede.Interface
                 && !(args.Event.X == 0 && args.Event.Y == 0)
                 )
             {
-                //Not dragging
                 SetCursor(target, column, false);
                 Selection.SelectPath(target);
             }
-            else if (!(args.Event.State.HasFlag(Gdk.ModifierType.ControlMask))
-                && !(args.Event.State.HasFlag(Gdk.ModifierType.ShiftMask)))
-            {
-                //get above or below
-                int xOffset, yOffset, width, height;
-                // moveList(this, target, args.Event.Y);
-            }
-
             deferSelect = null;
         }
 
@@ -217,7 +248,6 @@ namespace aoede.Interface
         [GLib.ConnectBefore]
         private void DragEndHandler(object o, DragEndArgs args)
         {
-            Console.WriteLine("DragEndHandler");
         }
 
         [GLib.ConnectBefore]
@@ -256,4 +286,75 @@ namespace aoede.Interface
         }
 
     }
+
+    interface Scrollable
+    {
+        void scrollUp();
+        void scrollDown();
+        void scrollStop();
+    }
+
+    class MultiDragScrolled : ScrolledWindow, Scrollable
+    {
+        enum STATUS { NOT, UP, DOWN };
+
+        STATUS status;
+        public MultiDragScrolled()
+        {
+            status = STATUS.NOT;
+        }
+
+        private bool scrollTimeout()
+        {
+            if (status == STATUS.UP && !atTop())
+            {
+                Vadjustment.Value -= 1;
+            }
+            else if (status == STATUS.DOWN && !atBottom())
+            {
+                Vadjustment.Value += 1;
+            }
+            else
+            {
+                status = STATUS.NOT;
+                return false;
+            }
+            return true;
+        }
+
+        public void scrollUp()
+        {
+            if (!atTop())
+            {
+                status = STATUS.UP;
+                GLib.Timeout.Add(20, scrollTimeout);
+            }
+        }
+
+        public void scrollStop()
+        {
+            status = STATUS.NOT;
+        }
+
+        public void scrollDown()
+        {
+            if (!atBottom())
+            {
+                status = STATUS.DOWN;
+                GLib.Timeout.Add(20, scrollTimeout);
+            }
+        }
+
+        private bool atBottom()
+        {
+            return (Vadjustment.Value >= Vadjustment.Upper);
+        }
+
+        private bool atTop()
+        {
+            return (Vadjustment.Value <= Vadjustment.Lower);
+        }
+
+    }
+
 }

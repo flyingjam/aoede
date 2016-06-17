@@ -12,12 +12,15 @@ namespace aoede.Audio
     {
 
         //TODO: change
-        public List<Music> music { get; private set; }
-        public string name { get; set; }
+        public List<Music> music { get; set; }
+        public string Name { get; set; }
         List<int> history;
         Random rand;
 
+        public int GlobalID { get; set; } = -1;
+
         int currentIndex { get; set; }
+        int nextId = 0;
         Playback playback;
 
         public Playlist()
@@ -30,7 +33,7 @@ namespace aoede.Audio
             playback = new PlaybackNormal();
         }
 
-        public Playlist(Playback play)
+        public Playlist(Playback play, string name = "")
         {
             music = new List<Music>();
             history = new List<int>();
@@ -45,7 +48,7 @@ namespace aoede.Audio
             music = new List<Music>();
 
             foreach (Music item in m)
-                music.Add(item);
+                add(item);
 
             history = new List<int>();
 
@@ -54,33 +57,138 @@ namespace aoede.Audio
             playback = new PlaybackNormal();
         }
 
-        public Playlist(List<Music> m)
+        public Playlist(List<Music> m, string name = "")
         {
             music = m;
+            //still have to tag music
+            foreach(Music item in music)
+            {
+                item.PlaylistID = nextId;
+                nextId++;
+            }
+
             history = new List<int>();
             rand = new Random();
             currentIndex = 0;
             playback = new PlaybackNormal();
         }
 
-        public Music get()
+        public Music Get()
         {
             if (music.Count == 0)
                 return null;
             return music[currentIndex];
         }
+        
+        public Music GetAt(int PID)
+        {
+            foreach(Music m in music)
+            {
+                if (m.PlaylistID == PID)
+                    return m;
+            }
+            return null;
+        }
 
-        public int next()
+        public int Next()
         {
             history.Add(currentIndex);
             currentIndex = playback.next(currentIndex, music, history);
             return currentIndex;
         }
 
-        public int previous()
+        public int Previous()
         {
             currentIndex = playback.previous(currentIndex, music, history);
             return currentIndex;
+        }
+
+        public void Move(int index, int position)
+        {
+            var temp = music[index];
+            music.RemoveAt(index);
+            music.Insert(position, temp);
+        }
+
+        public void MoveAfter(int index, int position)
+        {
+            var temp = music[index];
+            music.RemoveAt(index);
+            if (position + 1 > music.Count)
+                music.Add(temp);
+            else
+                music.Insert(position + 1, temp);
+        }
+
+        public void moveBeforePID(int PID, int PIDPosition)
+        {
+            var index = indexOf(PID);
+            var temp = music[index];
+            music.RemoveAt(index);
+
+            var position = indexOf(PIDPosition);
+            //if (position > index) position--;
+            if (position == -1)
+                Console.WriteLine("WTF");
+            music.Insert(position, temp);
+            Console.WriteLine("STATUS: ");
+            foreach(Music m in music)
+            {
+                Console.WriteLine(m.Filepath);
+            }
+            Console.WriteLine("END");
+        }
+
+        public void moveAfterPID(int PID, int PIDPosition)
+        {
+            var index = indexOf(PID);
+            var temp = music[index];
+            music.RemoveAt(index);
+
+            var position = indexOf(PIDPosition);
+            if(position + 1 > music.Count)
+            {
+                music.Add(temp);
+            }
+            else
+            {
+                music.Insert(position + 1, temp);
+            }
+
+        }
+
+        public void moveBefore(int index, int position)
+        {
+            Console.WriteLine("Moving {0} to {1}", music[index].Filepath, position);
+            var temp = music[index];
+            music.RemoveAt(index);
+            if (position > index) position--;
+            music.Insert(position, temp);
+        }
+
+        public int indexOf(Music m)
+        {
+            return music.IndexOf(m);
+        }
+        
+        public int indexOf(Guid UUID)
+        {
+            for(int i = 0; i < music.Count; i++)
+            {
+                if (music[i].UUID == UUID)
+                    return i;
+            }
+            return -1;
+        }
+
+        public int indexOf(int PID)
+        {
+            for(int i = 0; i < music.Count; i++)
+            {
+                if (music[i].PlaylistID == PID)
+                    return i;
+            }
+            return -1;
         }
 
         public void seek(Music m)
@@ -93,42 +201,58 @@ namespace aoede.Audio
             }
         }
 
-        public void seek(int index)
+        public bool seek(int index)
         {
-            if(index > 0 && index < music.Count)
+            if(index >= 0 && index < music.Count)
             {
                 history.Add(currentIndex);
                 currentIndex = index;
+                return true;
             }
+            return false;
         }
 
 
-        public void seek(string file)
+        public bool seek(string file)
         {
             for(int i = 0; i < music.Count; i++)
             {
-                if(music[i].filepath == file)
+                if(music[i].Filepath == file)
                 {
-                    seek(i);
-                    break;
+                    return seek(i);
                 }
             }
+            return false;
         }
 
-        public void seek(Guid UUID)
+        public bool seek(Guid UUID)
         {
             for(int i = 0; i < music.Count; i++)
             {
                 if (music[i].UUID == UUID)
                 {
-                    seek(i);
-                    break;
+                    return seek(i);
                 }
             }
+            return false;
+        }
+
+        public bool seekPID(int PID)
+        {
+            for(int i = 0; i < music.Count; i++)
+            {
+                if (music[i].PlaylistID == PID)
+                {
+                    return seek(i);
+                }
+            }
+            return false;
         }
 
         public void add(Music m)
         {
+            m.PlaylistID = nextId;
+            nextId++;
             music.Add(m);
         }
 
@@ -141,7 +265,7 @@ namespace aoede.Audio
         {
             foreach (Music item in m)
             {
-                music.Add(item);
+                add(item);
             }
         }
 
@@ -149,7 +273,7 @@ namespace aoede.Audio
         {
             foreach (Music item in m)
             {
-                music.Add(item);
+                add(item);
             }
         }
 
@@ -159,7 +283,7 @@ namespace aoede.Audio
             string str = "Music: \n";
             foreach(Music m in music)
             {
-                str += (m.filepath + "\n");
+                str += (m.Filepath + "\n");
             }
 
             return str;

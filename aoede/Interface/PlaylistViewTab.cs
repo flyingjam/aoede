@@ -10,23 +10,24 @@ namespace aoede.Interface
     class PlaylistViewTab : HBox
     {
         Label name;
-        ToolButton close;
+        Button close;
         PlaylistViewContainer parent;
-        PlaylistView view;
+        PlaylistViewWindow view;
 
-        public PlaylistViewTab(string label, PlaylistView v, PlaylistViewContainer p)
+        public PlaylistViewTab(string label, PlaylistViewWindow v, PlaylistViewContainer p)
         {
+            parent = p;
             name = new Label(label);
             Image image = new Image(Gtk.Stock.Close);
             image.IconSize = 16;
-            close = new ToolButton(Gtk.Stock.Close);
-            parent = p;
+            close = new Button("x");
             close.Clicked += CloseTabHandler;
+            close.Relief = ReliefStyle.None;
 
             view = v;
 
-            Add(name);
-            Add(close);
+            this.PackStart(name, false, false, 0);
+            this.PackStart(close, false, false, 0);
             ShowAll();
         }
 

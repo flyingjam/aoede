@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Gtk;
 using MoonSharp.Interpreter;
 using System.Runtime.InteropServices;
+using SFML;
 
 namespace aoede
 {
@@ -19,21 +20,22 @@ namespace aoede
 
         static void Main(string[] args)
         {
-            //createGui();
+            createGui();
             //moonsharptesting();            
             //playlistTest();
             //metadataTest();
+            /*
+            GLib.Timeout.Add(300, GLOBALKEYCHECKER);
             Application.Init();
             var win = new Window("SDFS:DFA");
 
-            var tree = new Interface.MultiDragTreeView();
-            win.Add(tree);
+            var t = new Interface.MultiDragScrolled();
+            var tree = new Interface.MultiDragTreeView(t);
             TreeViewColumn fuck = new TreeViewColumn();
             fuck.Title = "SDLF";
             tree.AppendColumn(fuck);
             var list = new Interface.ListStoreMovable(typeof(string));//new ListStore(typeof(string));
             tree.Model = list;
-
 
             var fuckCell = new CellRendererText();
             fuck.PackStart(fuckCell, true);
@@ -43,12 +45,22 @@ namespace aoede
                 list.AppendValues(i.ToString());
             }
 
+            t.Add(tree);
+            win.Add(t);
             win.ShowAll();
              
             Application.Run();
+            */
 
 
          }
+         
+        private static bool GLOBALKEYCHECKER()
+        {
+            if (SFML.Window.Keyboard.IsKeyPressed(SFML.Window.Keyboard.Key.LAlt))
+                Console.WriteLine("PReSSED");
+            return true;
+        }
 
         static void metadataTest()
         {
@@ -85,7 +97,7 @@ namespace aoede
             w.tagMaster.add(new Audio.Music("t.mp3"), "mp3");
             w.tagMaster.add(new Audio.Music("r.mp3"), "mp3");
 
-            var mp3 = w.query(play, new Audio.Tag("mp3"));
+            var mp3 = w.Query(play, new Audio.Tag("mp3"));
 
 			Script script = new Script ();
 
@@ -142,14 +154,16 @@ function repl(input)
 	end
 end
 
+function add(a, b)
+    return |a, b| a + b
+end
+
 ";
             script.DoString(newRepl);
-            while (true)
-            {
-                string input = Console.ReadLine();
-                var v = script.Call(script.Globals["repl"], input);
-
-            }
+            DynValue test = script.Globals.Get("add");
+            var f = test.Function;
+            Console.WriteLine(f.Call(1, 2));
+            Console.ReadKey();
         }
 
     }
